@@ -1,0 +1,66 @@
+domain name: otsn.com 
+domain name: otsnt.com
+s3 bucket name: otsnawscli
+
+start with commannd
+curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+chmod +x ./kops
+sudo mv ./kops /usr/local/bin/
+
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+
+kops version
+kubectl version
+
+create s3 bucket OR use existing if created
+create  hosted name OR use existing
+
+ vi ~/.bashrc
+ paste below under fi on page that pop-up for vi
+export KOPS_CLUSTER_NAME=otsnt.com
+export KOPS_STATE_STORE=s3://otsnawscli
+
+source ~/.bashrc
+ssh-keygen
+press enter buton 5x
+
+kops create cluster \
+--state=${KOPS_STATE_STORE} \
+--node-count=2 \
+--master-size=t2.micro \
+--node-size=t2.micro \
+--zones=us-west-2a,us-west-2b \
+--name=${KOPS_CLUSTER_NAME} \
+--dns private \
+--master-count 1
+
+kops update cluster --yes
+wait for 15 minutes
+
+kops validate cluster
+
+to connet master copy ssh on ec2 and paste on command
+to delete go back to ec2 controller for kubernetes and do
+kops delete cluster  --yes
+to bring it back up do 
+kops validate cluster
+
+
+kubectl create -f https://raw.githubusercontent.com/javahometech/kubernetes/master/pods/pods.yml
+wget https://raw.githubusercontent.com/dafesmith/kubernetes-1/master/ReplicationController/rc.yml
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jenkins-deployment
+  labels:
+    app: jenkins
+spec:
+  containers:
+    - name: jenkins
+      image: jenkins/jenkins:lts
+      ports:
+        - containerPort: 8080
